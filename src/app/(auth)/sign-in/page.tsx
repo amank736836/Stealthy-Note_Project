@@ -17,7 +17,7 @@ import { Loader2 } from "lucide-react";
 import { signIn, useSession } from "next-auth/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Suspense, use, useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 
@@ -85,14 +85,14 @@ function SignIn({
   };
 
   return (
-    <div className="flex justify-center items-center h-[calc(100vh-125px)] bg-gray-100 dark:bg-gray-900">
-      <div className="w-full max-w-md p-8 space-y-8 bg-white dark:bg-gray-800 rounded-lg shadow-md">
+    <div className="auth-page flex min-h-[calc(100vh-76px)] items-center justify-center px-4 py-12 bg-gray-100 dark:bg-gray-900">
+      <div className="auth-card w-full max-w-md p-8 space-y-8 bg-white dark:bg-gray-800 rounded-lg shadow-md">
         <div className="text-center">
           <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl mb-6 text-gray-900 dark:text-white">
-            Join Stealthy Note 🥷📝
+            Welcome back
           </h1>
           <p className="mb-6 text-gray-700 dark:text-gray-300">
-            Sign In to start stealing notes from your friends
+            Sign in to open your private inbox and see what your people have shared.
           </p>
         </div>
 
@@ -143,7 +143,7 @@ function SignIn({
               <Button
                 type="submit"
                 disabled={isButtonDisabled || isSubmitting}
-                className="dark:bg-gray-700 dark:text-white mt-8"
+                className="auth-submit-button mt-8"
               >
                 {isSubmitting ? (
                   <>
@@ -170,7 +170,7 @@ function SignIn({
                     : identifier,
                 },
               }}
-              className="text-blue-500 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
+              className="auth-link"
             >
               Forgot Password
             </Link>
@@ -189,7 +189,7 @@ function SignIn({
                     : identifier,
                 },
               }}
-              className="text-blue-500 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
+              className="auth-link"
             >
               Sign Up
             </Link>

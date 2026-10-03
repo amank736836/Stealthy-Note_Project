@@ -2,27 +2,19 @@ import { Toaster } from "@/components/ui/toaster";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
-export const metadata: Metadata = {
-  title: "Stealthy Note",
-  description: "A stealthy note-taking app",
-};
-
 import Navbar from "@/components/Navbar";
 import AuthProvider from "@/context/AuthProvider";
 import { ThemeProvider } from "next-themes";
+import "./globals.css";
+
+export const metadata: Metadata = {
+  title: "Stealthy Note — Say it in confidence",
+  description:
+    "A private, anonymous inbox for honest messages from the people in your life.",
+  verification: {
+    google: "AoaeHK9zvWlwoVddrUwAZTdUnhvLSaVI-noEC53DjQY",
+  },
+};
 
 export default function RootLayout({
   children,
@@ -31,15 +23,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <meta
-        name="google-site-verification"
-        content="AoaeHK9zvWlwoVddrUwAZTdUnhvLSaVI-noEC53DjQY"
-      />
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-white dark:bg-gray-900 text-black dark:text-white`}
-      >
+      <body className="min-h-screen antialiased">
         <AuthProvider>
-          <ThemeProvider attribute="class">
+          <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
             <Navbar />
             {children}
             <Toaster />

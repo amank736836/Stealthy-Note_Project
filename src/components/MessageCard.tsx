@@ -1,13 +1,5 @@
 "use client";
 
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-
 import { Message } from "@/backend/model/User";
 import {
   AlertDialog,
@@ -20,11 +12,13 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { ApiResponse } from "@/types/ApiResponse";
 import axios, { AxiosError } from "axios";
-import { X } from "lucide-react";
-import { Button } from "./ui/button";
+import { MessageCircle, Trash2 } from "lucide-react";
+import { useState } from "react";
 
 type MessageCardProps = {
   message: Message;
@@ -33,23 +27,33 @@ type MessageCardProps = {
 
 function MessageCard({ message, onMessageDelete }: MessageCardProps) {
   const { toast } = useToast();
+  const [isDeleting, setIsDeleting] = useState(false);
+  const createdAt = new Date(message.createdAt);
+  const formattedDate = Number.isNaN(createdAt.getTime())
+    ? "Recently"
+    : new Intl.DateTimeFormat(undefined, {
+        month: "short",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+      }).format(createdAt);
 
   const handleDeleteConfirm = async () => {
+    setIsDeleting(true);
     try {
       const response = await axios.delete<ApiResponse>(
         `/api/delete-message/${message._id}`
       );
 
-
       if (response.data.success) {
-        onMessageDelete(message._id);
+        onMessageDelete(String(message._id));
         toast({
-          title: "Message deleted successfully",
-          description: "Your message has been deleted successfully",
+          title: "Message deleted",
+          description: "The note has been removed from your inbox.",
         });
       } else {
         toast({
-          title: "Error deleting message",
+          title: "Couldn’t delete this message",
           description: response.data.message,
           variant: "destructive",
         });
@@ -57,51 +61,67 @@ function MessageCard({ message, onMessageDelete }: MessageCardProps) {
     } catch (error) {
       const axiosError = error as AxiosError<ApiResponse>;
       toast({
-        title: "Error deleting message",
+        title: "Couldn’t delete this message",
         description:
-          axiosError.response?.data.message ??
-          `An error occurred while deleting the message, ${error}`,
+          axiosError.response?.data.message ||
+          "Please try again in a moment.",
         variant: "destructive",
       });
+    } finally {
+      setIsDeleting(false);
     }
   };
 
   return (
-    <Card className="card-bordered">
-      <CardHeader>
-        <div className="flex justify-between items-center">
-          <CardTitle>{message.content}</CardTitle>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="destructive">
-                <X className="w-5 h-5" />
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  This action cannot be undone. This will permanently delete
-                  your account and remove your data from our servers.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleDeleteConfirm}>
-                  Continue
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+    <Card className="inbox-message-card">
+      <CardHeader className="inbox-message-header space-y-0">
+        <div className="inbox-message-label">
+          <span className="inbox-message-label-icon">
+            <MessageCircle size={14} aria-hidden="true" />
+          </span>
+          <span>Anonymous note</span>
         </div>
-
-        <div className="text-sm">
-          {new Date(message.createdAt).toLocaleString()}
-        </div>
-
-        <CardDescription></CardDescription>
+        <time
+          className="inbox-message-date"
+          dateTime={Number.isNaN(createdAt.getTime()) ? undefined : createdAt.toISOString()}
+        >
+          {formattedDate}
+        </time>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button
+              type="button"
+              variant="ghost"
+              className="inbox-delete-button"
+              aria-label="Delete this message"
+            >
+              <Trash2 size={14} aria-hidden="true" />
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete this note?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This message will be permanently removed from your inbox. This
+                action can’t be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isDeleting}>Keep message</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDeleteConfirm}
+                disabled={isDeleting}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {isDeleting ? "Deleting…" : "Delete note"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </CardHeader>
-      <CardContent></CardContent>
+      <CardContent className="p-0">
+        <p className="inbox-message-content">{message.content}</p>
+      </CardContent>
     </Card>
   );
 }
