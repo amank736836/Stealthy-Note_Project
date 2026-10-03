@@ -141,14 +141,14 @@ function SignUp({
   };
 
   return (
-    <div className="flex justify-center items-center  h-[calc(100vh-125px)]  bg-gray-100 dark:bg-gray-900">
-      <div className="w-full max-w-md p-8 space-y-8 bg-white dark:bg-gray-800 rounded-lg shadow-md">
+    <div className="auth-page flex min-h-[calc(100vh-76px)] items-center justify-center px-4 py-12 bg-gray-100 dark:bg-gray-900">
+      <div className="auth-card w-full max-w-md p-8 space-y-8 bg-white dark:bg-gray-800 rounded-lg shadow-md">
         <div className="text-center">
           <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl mb-6 text-gray-900 dark:text-white">
-            Join Stealthy Note 🥷📝
+            Create your private inbox
           </h1>
           <p className="mb-4 text-gray-700 dark:text-gray-300">
-            Sign up to start stealing notes from your friends
+            A link for your circle. A place for the honest notes.
           </p>
         </div>
         <Form {...form}>
@@ -256,7 +256,7 @@ function SignUp({
               <Button
                 type="submit"
                 disabled={isButtonDisabled || isSubmitting}
-                className="dark:bg-gray-700 dark:text-white"
+                className="auth-submit-button"
               >
                 {isSubmitting ? (
                   <>
@@ -285,7 +285,7 @@ function SignUp({
                       : identifier,
                 },
               }}
-              className="text-blue-500 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
+              className="auth-link"
             >
               Sign in
             </Link>

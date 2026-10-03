@@ -2,7 +2,6 @@
 
 import { messageSchema } from "@/backend/schemas/messageSchema";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import {
   Form,
   FormControl,
@@ -11,12 +10,20 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Separator } from "@/components/ui/separator";
 import { toast } from "@/hooks/use-toast";
 import { ApiResponse } from "@/types/ApiResponse";
 import { zodResolver } from "@hookform/resolvers/zod";
 import axios, { AxiosError } from "axios";
-import { Loader2 } from "lucide-react";
+import {
+  Heart,
+  Loader2,
+  LockKeyhole,
+  MessageSquare,
+  RefreshCw,
+  Send,
+  ShieldCheck,
+  Sparkles,
+} from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
@@ -24,30 +31,64 @@ import { useForm } from "react-hook-form";
 import * as z from "zod";
 
 const specialChar = "||";
-
-const parseStringMessages = (messageString: string): string[] => {
-  return messageString.split(specialChar).map((msg) => msg.trim());
-};
-
 const initialMessageString =
-  "What's your favorite movie?||Do you have any pets?||What's your dream job?";
+  "What’s a small thing that always makes you smile?||What’s something you wish you had more time for?||What’s one thing you appreciate about your friends?";
+
+const parseStringMessages = (messageString: string) =>
+  messageString
+    .split(specialChar)
+    .map((message) => message.trim())
+    .filter(Boolean);
 
 export default function SendMessage() {
   const params = useParams<{ username: string }>();
   const username = params.username;
+  const [isLoading, setIsLoading] = useState(false);
+  const [messageString, setMessageString] = useState(initialMessageString);
+  const [isCompletionLoading, setIsCompletionLoading] = useState(false);
+  const [completionError, setCompletionError] = useState("");
+  const messageArray = parseStringMessages(messageString);
 
   const form = useForm<z.infer<typeof messageSchema>>({
     resolver: zodResolver(messageSchema),
     defaultValues: { content: "" },
   });
-
-  const messageContent = form.watch("content");
+  const messageContent = form.watch("content") || "";
 
   const handleMessageClick = (message: string) => {
-    form.setValue("content", message);
+    form.setValue("content", message, { shouldValidate: true });
   };
 
-  const [isLoading, setIsLoading] = useState(false);
+  const fetchSuggestedMessages = useCallback(async () => {
+    setIsCompletionLoading(true);
+    setCompletionError("");
+
+    try {
+      const response = await axios.post<ApiResponse>("/api/suggest-messages", {
+        exclude: initialMessageString,
+      });
+
+      if (response.data.success && response.data.message) {
+        setMessageString(response.data.message);
+      } else {
+        setCompletionError(
+          response.data.message || "Try again in a moment for fresh prompts."
+        );
+      }
+    } catch (error) {
+      const axiosError = error as AxiosError<ApiResponse>;
+      setCompletionError(
+        axiosError.response?.data.message ||
+          "We couldn’t load fresh prompts, but you can still write your own."
+      );
+    } finally {
+      setIsCompletionLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void fetchSuggestedMessages();
+  }, [fetchSuggestedMessages]);
 
   const onSubmit = async (data: z.infer<typeof messageSchema>) => {
     setIsLoading(true);
@@ -63,17 +104,21 @@ export default function SendMessage() {
       }
 
       toast({
-        title: response.data.success
-          ? response.data.message || "Message sent"
-          : "Error sending message",
+        title: response.data.success ? "Your note is on its way" : "Message not sent",
+        description:
+          response.data.message ||
+          (response.data.success
+            ? "Thanks for sharing something kind."
+            : "Please try again in a moment."),
         variant: response.data.success ? "default" : "destructive",
       });
     } catch (error) {
       const axiosError = error as AxiosError<ApiResponse>;
       toast({
-        title: "Error sending message",
+        title: "Message not sent",
         description:
-          axiosError.response?.data.message ?? `An error occurred: ${error}`,
+          axiosError.response?.data.message ||
+          "Please try again in a moment.",
         variant: "destructive",
       });
     } finally {
@@ -81,150 +126,154 @@ export default function SendMessage() {
     }
   };
 
-  const [messageString, setMessageString] = useState(initialMessageString);
-  const [messageArray, setMessageArray] = useState<string[]>([]);
-  const [isCompletionLoading, setIsCompletionLoading] = useState(false);
-  const [completionError, setCompletionError] = useState<Error | null>(null);
-
-  const fetchSuggestedMessages = useCallback(async () => {
-    setIsCompletionLoading(true);
-    try {
-      const response = await axios.post<ApiResponse>("/api/suggest-messages", {
-        exclude: messageString,
-      });
-
-      console.log("Suggested messages:", response);
-
-      if (response.data.success) {
-        setMessageString(response.data.message);
-      } else {
-        toast({
-          title: "Error fetching suggested messages",
-          description: response.data.message,
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error("Failed to fetch suggested messages:", error);
-      setCompletionError(error as Error);
-    } finally {
-      setIsCompletionLoading(false);
-    }
-  }, [messageString]);
-
-  useEffect(() => {
-    fetchSuggestedMessages();
-  }, []);
-
-  useEffect(() => {
-    const array = async () => {
-      setMessageArray(await parseStringMessages(messageString));
-    };
-
-    array();
-  }, [messageString]);
-
   return (
-    <div className="container mx-auto my-8 p-6 bg-white dark:bg-gray-900 rounded-lg max-w-4xl shadow-lg">
-      <h1 className="text-3xl font-bold text-center mb-6 text-gray-900 dark:text-white">
-        Public Profile Link
-      </h1>
+    <main className="public-page">
+      <div className="public-shell">
+        <header className="public-hero">
+          <span className="public-privacy-pill">
+            <LockKeyhole size={13} aria-hidden="true" />
+            Anonymous by design
+          </span>
+          <h1>
+            Send a note to <span>@{username}</span>
+          </h1>
+          <p>
+            Say the kind thing, share a thought, or ask a question. Your name
+            won’t be attached to the message.
+          </p>
+        </header>
 
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          <FormField
-            control={form.control}
-            name="content"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-gray-900 dark:text-gray-300">
-                  Send Anonymous Message to @{username}
-                </FormLabel>
-                <FormControl>
-                  <textarea
-                    {...field}
-                    className="resize-none p-2 w-full border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                    placeholder="Write your anonymous message here"
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+        <div className="public-compose-grid">
+          <section className="public-panel public-compose-panel" aria-labelledby="compose-title">
+            <div className="public-panel-heading">
+              <span className="public-panel-heading-icon">
+                <MessageSquare size={19} aria-hidden="true" />
+              </span>
+              <span>
+                <h2 id="compose-title">Write your note</h2>
+                <p>Keep it thoughtful. Keep it anonymous.</p>
+              </span>
+            </div>
 
-          <div className="flex justify-center">
-            <Button
-              type="submit"
-              disabled={isLoading || !messageContent}
-              className="dark:bg-blue-500 dark:text-white"
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Please Wait
-                </>
-              ) : (
-                "Send Message"
-              )}
-            </Button>
-          </div>
-        </form>
-      </Form>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)}>
+                <FormField
+                  control={form.control}
+                  name="content"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel htmlFor="anonymous-message">
+                        Your message
+                      </FormLabel>
+                      <FormControl>
+                        <textarea
+                          id="anonymous-message"
+                          {...field}
+                          rows={6}
+                          maxLength={300}
+                          aria-describedby="message-help message-count"
+                          className="w-full resize-none"
+                          placeholder="There’s something I’ve been meaning to tell you…"
+                        />
+                      </FormControl>
+                      <div className="public-field-footer" id="message-help">
+                        <span>10–300 characters</span>
+                        <span id="message-count" aria-live="polite">
+                          {messageContent.length}/300
+                        </span>
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-      <div className="space-y-6 my-8">
-        <Button
-          onClick={fetchSuggestedMessages}
-          className="w-full dark:bg-gray-700 dark:text-white"
-          disabled={isCompletionLoading}
-        >
-          {isCompletionLoading ? "Loading..." : "Suggest Messages"}
-        </Button>
-
-        {completionError && (
-          <p className="text-red-500 text-center">{completionError.message}</p>
-        )}
-
-        <Card className="dark:bg-gray-800 dark:border-gray-700">
-          <CardHeader>
-            <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
-              Suggested Messages
-            </h3>
-          </CardHeader>
-          <CardContent className="flex flex-col space-y-3">
-            {completionError ? (
-              <p className="text-red-500">{completionError.message}</p>
-            ) : messageString ? (
-              messageArray.map((message, index) => (
                 <Button
-                  key={index}
-                  variant="outline"
-                  onClick={() => handleMessageClick(message)}
-                  className="w-full text-left break-words whitespace-pre-wrap p-3 my-2 border border-gray-300 dark:border-gray-600 rounded-md dark:text-white"
+                  type="submit"
+                  disabled={isLoading || !messageContent.trim()}
+                  className="public-send-button"
                 >
-                  {message}
+                  {isLoading ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin" aria-hidden="true" />
+                      Sending your note…
+                    </>
+                  ) : (
+                    <>
+                      Send anonymously
+                      <Send size={15} aria-hidden="true" />
+                    </>
+                  )}
                 </Button>
-              ))
-            ) : (
-              <p className="text-gray-500 dark:text-gray-400">
-                No messages to suggest
+              </form>
+            </Form>
+          </section>
+
+          <aside className="public-panel public-suggestion-panel" aria-labelledby="suggestion-title">
+            <div className="public-suggestion-top">
+              <div>
+                <h2 id="suggestion-title">Need a first line?</h2>
+                <p>Tap a prompt to add it to your note.</p>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                className="suggestion-refresh"
+                onClick={() => void fetchSuggestedMessages()}
+                disabled={isCompletionLoading}
+                aria-label="Suggest new message prompts"
+                title="Suggest new prompts"
+              >
+                {isCompletionLoading ? (
+                  <Loader2 size={14} className="animate-spin" aria-hidden="true" />
+                ) : (
+                  <RefreshCw size={14} aria-hidden="true" />
+                )}
+              </Button>
+            </div>
+
+            <div className="suggestion-list">
+              {isCompletionLoading && messageArray.length === 0 ? (
+                <div className="public-loading" role="status">
+                  <Loader2 size={15} className="animate-spin" aria-hidden="true" />
+                  Finding a little inspiration…
+                </div>
+              ) : (
+                messageArray.map((message, index) => (
+                  <Button
+                    key={`${message}-${index}`}
+                    type="button"
+                    variant="outline"
+                    onClick={() => handleMessageClick(message)}
+                    className="suggestion-prompt"
+                  >
+                    <Sparkles
+                      size={13}
+                      className="mr-2 shrink-0 text-primary"
+                      aria-hidden="true"
+                    />
+                    {message}
+                  </Button>
+                ))
+              )}
+            </div>
+            {completionError && (
+              <p className="public-error" role="status">
+                {completionError}
               </p>
             )}
-          </CardContent>
-        </Card>
-      </div>
+          </aside>
+        </div>
 
-      <Separator className="my-6 dark:bg-gray-700" />
-
-      <div className="text-center">
-        <p className="mb-4 text-gray-700 dark:text-gray-300">
-          Get Your Own Message Board
+        <p className="public-privacy-note">
+          <ShieldCheck size={15} aria-hidden="true" />
+          Your note arrives without your name or profile attached.
+          <Heart size={13} aria-hidden="true" />
         </p>
-        <Link href="/sign-up">
-          <Button className="dark:bg-blue-500 dark:text-white">
-            Create Your Account
-          </Button>
-        </Link>
+        <p className="public-signup-prompt">
+          Want your own anonymous inbox?
+          <Link href="/sign-up">Create yours <span aria-hidden="true">→</span></Link>
+        </p>
       </div>
-    </div>
+    </main>
   );
 }
